@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"os"
 
 	"github.com/Khazz0r/blog-aggregator/internal/config"
 )
@@ -12,13 +12,28 @@ func main() {
 	if err != nil {
 		log.Fatalf("error reading config: %v", err)
 	}
-	fmt.Printf("Read config: %+v\n", cfg)
 
-	cfg.SetUser("Kyle")
-
-	cfg, err = config.Read()
-	if err != nil {
-		log.Fatalf("error reading config: %v", err)
+	mainState := &state{
+		&cfg,
 	}
-	fmt.Printf("Read config again: %+v\n", cfg)
+
+	cmds := commands{
+		registeredCommands: make(map[string]func(*state, command) error),
+	}
+
+	cmds.register("login", handlerLogin)
+
+	if len(os.Args) < 2 {
+		log.Fatal("error: not enough arguments were provided")
+	}
+	
+	cmd := command{
+		os.Args[1],
+		os.Args[2:],
+	}
+
+	err = cmds.run(mainState, cmd)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
