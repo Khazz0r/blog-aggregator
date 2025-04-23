@@ -4,10 +4,12 @@ import (
 	"errors"
 
 	"github.com/Khazz0r/blog-aggregator/internal/config"
+	"github.com/Khazz0r/blog-aggregator/internal/database"
 )
 
 type state struct {
 	cfg *config.Config
+	db *database.Queries
 }
 
 type command struct {

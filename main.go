@@ -5,6 +5,9 @@ import (
 	"os"
 
 	"github.com/Khazz0r/blog-aggregator/internal/config"
+	"github.com/Khazz0r/blog-aggregator/internal/database"
+	"database/sql"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -13,8 +16,15 @@ func main() {
 		log.Fatalf("error reading config: %v", err)
 	}
 
+	db, err := sql.Open("postgres", cfg.DbURL)
+	if err != nil {
+		log.Fatalf("error opening postgres database: %v", err)
+	}
+	dbQueries := database.New(db)
+
 	mainState := &state{
 		&cfg,
+		dbQueries,
 	}
 
 	cmds := commands{
@@ -22,6 +32,7 @@ func main() {
 	}
 
 	cmds.register("login", handlerLogin)
+	cmds.register("register", handlerUserRegister)
 
 	if len(os.Args) < 2 {
 		log.Fatal("error: not enough arguments were provided")
