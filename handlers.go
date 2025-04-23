@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// handler for the CLI that deals with logging as long as it is an existing user
+// handler for the login command that logs in the username provided as long as it is an existing user
 func handlerLogin(s *state, cmd command) error {
 	if len(cmd.args) != 1 {
 		return errors.New("expected single word, a name, for login")
@@ -31,7 +31,7 @@ func handlerLogin(s *state, cmd command) error {
 	return nil
 }
 
-// handler for the CLI that deals with registering new users to the database
+// handler for the register command that registers new users to the database
 func handlerUserRegister(s *state, cmd command) error {
 	if len(cmd.args) != 1 {
 		return errors.New("expected single word, a name, for registering")
@@ -62,5 +62,34 @@ func handlerUserRegister(s *state, cmd command) error {
 
 	// Test prints of created user's data for debugging purposes
 	// fmt.Printf("User ID: %d\nUser created_at: %v\nUser updated_at: %v\nUser name: %s\n", dbUser.ID, dbUser.CreatedAt, dbUser.UpdatedAt, dbUser.Name)
+	return nil
+}
+
+// NOT FOR PRODUCTION; handler for the reset command to allow easy testing by wiping users table
+func handlerResetUsers(s *state, cmd command) error {
+	err := s.db.ResetUsers(context.Background())
+	if err != nil {
+		log.Fatalf("reset of users was not successful, please try again")
+	}
+
+	fmt.Println("reset of users was successful")
+	return nil
+}
+
+// handler for the users command that prints out all the users in the database and shows the currently logged in one
+func handlerGetUsers(s *state, cmd command) error {
+	users, err := s.db.GetUsers(context.Background())
+	if err != nil {
+		log.Fatalf("unable to retrieve all users from database")
+	}
+
+	for _, user := range users {
+		if user.Name == s.cfg.CurrentUserName {
+			fmt.Printf("%s (current)\n", user.Name)
+		} else {
+			fmt.Printf("%s\n", user.Name)
+		}
+	}
+
 	return nil
 }
