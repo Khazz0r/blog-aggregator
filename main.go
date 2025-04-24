@@ -4,9 +4,10 @@ import (
 	"log"
 	"os"
 
+	"database/sql"
+
 	"github.com/Khazz0r/blog-aggregator/internal/config"
 	"github.com/Khazz0r/blog-aggregator/internal/database"
-	"database/sql"
 	_ "github.com/lib/pq"
 )
 
@@ -31,20 +32,26 @@ func main() {
 		registeredCommands: make(map[string]func(*state, command) error),
 	}
 
-	cmds.register("login", handlerLogin)
+	// commands that don't require you to be logged in
 	cmds.register("register", handlerUserRegister)
-	cmds.register("reset", handlerResetUsers)
-	cmds.register("users", handlerGetUsers)
 	cmds.register("agg", handlerFetchFeed)
-	cmds.register("addfeed", handlerCreateFeed)
 	cmds.register("feeds", handlerGetFeeds)
-	cmds.register("follow", handlerFollow)
-	cmds.register("following", handlerFollowing)
+	cmds.register("login", handlerLogin)
+
+	// commands that require you to be logged in
+	cmds.register("users", middlewareLoggedIn(handlerGetUsers))
+	cmds.register("addfeed", middlewareLoggedIn(handlerCreateFeed))
+	cmds.register("follow", middlewareLoggedIn(handlerFollow))
+	cmds.register("following", middlewareLoggedIn(handlerFollowingListFeeds))
+	cmds.register("unfollow", middlewareLoggedIn(handlerUnfollow))
+
+	// NOT FOR PROD USE
+	cmds.register("reset", handlerResetUsers)
 
 	if len(os.Args) < 2 {
 		log.Fatal("error: not enough arguments were provided")
 	}
-	
+
 	cmd := command{
 		os.Args[1],
 		os.Args[2:],

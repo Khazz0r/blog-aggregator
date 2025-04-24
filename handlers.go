@@ -20,10 +20,10 @@ func handlerLogin(s *state, cmd command) error {
 
 	_, err := s.db.GetUser(context.Background(), cmd.args[0])
 	if err != nil {
-		log.Fatalf("user does not exist in database")
+		log.Fatalf("error finding user to log in with, please try again")
 	}
 
-	s.cfg.SetUser(cmd.args[0])
+	err = s.cfg.SetUser(cmd.args[0])
 	if err != nil {
 		log.Fatalf("error setting user")
 	}
@@ -61,24 +61,11 @@ func handlerUserRegister(s *state, cmd command) error {
 
 	fmt.Printf("user %s was created successfully\n", dbUser.Name)
 
-	// Test prints of created user's data for debugging purposes
-	// fmt.Printf("User ID: %d\nUser created_at: %v\nUser updated_at: %v\nUser name: %s\n", dbUser.ID, dbUser.CreatedAt, dbUser.UpdatedAt, dbUser.Name)
-	return nil
-}
-
-// NOT FOR PRODUCTION; handler for the reset command to allow easy testing by wiping users table
-func handlerResetUsers(s *state, cmd command) error {
-	err := s.db.ResetUsers(context.Background())
-	if err != nil {
-		log.Fatalf("reset of users was not successful, please try again")
-	}
-
-	fmt.Println("reset of users was successful")
 	return nil
 }
 
 // handler for the users command that prints out all the users in the database and shows the currently logged in one
-func handlerGetUsers(s *state, cmd command) error {
+func handlerGetUsers(s *state, cmd command, user database.User) error {
 	users, err := s.db.GetUsers(context.Background())
 	if err != nil {
 		log.Fatalf("unable to retrieve all users from database")
@@ -108,13 +95,9 @@ func handlerFetchFeed(s *state, cmd command) error {
 }
 
 // handler for the addfeed command that creates a feed attached to the current user
-func handlerCreateFeed(s *state, cmd command) error {
+func handlerCreateFeed(s *state, cmd command, user database.User) error {
 	if len(cmd.args) != 2 {
 		return errors.New("expected a name and url of the feed")
-	}
-	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		log.Fatalf("error getting user from database")
 	}
 
 	feed, err := s.db.CreateFeed(context.Background(),
@@ -131,11 +114,11 @@ func handlerCreateFeed(s *state, cmd command) error {
 	}
 
 	feedFollow, err := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
-		ID: uuid.New(),
+		ID:        uuid.New(),
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
-		UserID: user.ID,
-		FeedID: feed.ID,
+		UserID:    user.ID,
+		FeedID:    feed.ID,
 	})
 	if err != nil {
 		log.Fatalf("error creating feed follow: %v", err)
@@ -175,14 +158,9 @@ func handlerGetFeeds(s *state, cmd command) error {
 }
 
 // handler for the follow command that creates a feed follow for the current user
-func handlerFollow(s *state, cmd command) error {
+func handlerFollow(s *state, cmd command, user database.User) error {
 	if len(cmd.args) != 1 {
 		return errors.New("no url found in follow command, please try again")
-	}
-
-	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		log.Fatalf("error retrieving user for follow command: %v", err)
 	}
 
 	feed, err := s.db.GetFeedByUrl(context.Background(), cmd.args[0])
@@ -191,11 +169,11 @@ func handlerFollow(s *state, cmd command) error {
 	}
 
 	feedFollow, err := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
-		ID: uuid.New(),
+		ID:        uuid.New(),
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
-		UserID: user.ID,
-		FeedID: feed.ID,
+		UserID:    user.ID,
+		FeedID:    feed.ID,
 	})
 	if err != nil {
 		log.Fatalf("error creating feed follow: %v", err)
@@ -207,12 +185,7 @@ func handlerFollow(s *state, cmd command) error {
 }
 
 // handler for the following command that prints out all the feeds that the current user is following
-func handlerFollowing(s *state, cmd command) error {
-	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		log.Fatalf("error retrieving user for following command: %v", err)
-	}
-
+func handlerFollowingListFeeds(s *state, cmd command, user database.User) error {
 	feeds, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
 	if err != nil {
 		log.Fatalf("error getting feeds followed for current user: %v", err)
@@ -222,6 +195,22 @@ func handlerFollowing(s *state, cmd command) error {
 		fmt.Printf("%s\n", feed.FeedName)
 	}
 
+	return nil
+}
+
+func handlerUnfollow(s *state, cmd command, user database.User) error {
+	if len(cmd.args) != 1 {
+		return errors.New("expected url but didn't find one, please provide a url")
+	}
+
+	err := s.db.DeleteFeedFollow(context.Background(), database.DeleteFeedFollowParams{
+		UserID: user.ID,
+		Url: cmd.args[0],
+	})
+	if err != nil {
+		log.Fatalf("error removing follow: %v", err)
+	}
+	
 	return nil
 }
 
@@ -235,6 +224,7 @@ func printFeed(feed database.Feed, user database.User) {
 	fmt.Printf("* User:          %s\n", user.Name)
 }
 
+// helper function to print out the username and feed name of all feeds
 func printFeedFollow(username, feedname string) {
 	fmt.Printf("* User:          %s\n", username)
 	fmt.Printf("* Feed:          %s\n", feedname)
