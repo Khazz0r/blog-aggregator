@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/Khazz0r/blog-aggregator/internal/database"
+	"github.com/Khazz0r/blog-aggregator/internal/rss"
 	"github.com/google/uuid"
 )
 
@@ -90,6 +91,18 @@ func handlerGetUsers(s *state, cmd command) error {
 			fmt.Printf("%s\n", user.Name)
 		}
 	}
+
+	return nil
+}
+
+// handler for the agg command that gets data from url provided and prints it all out
+func handlerFetchFeed(s *state, cmd command) error {
+	feed, err := rss.FetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
+	if err != nil {
+		log.Fatalf("error fetching feed")
+	}
+
+	fmt.Printf("Feed: %+v\n", feed)
 
 	return nil
 }
