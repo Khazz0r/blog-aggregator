@@ -45,8 +45,8 @@ func handlerUserRegister(s *state, cmd command) error {
 
 	dbUser, err := s.db.CreateUser(context.Background(), database.CreateUserParams{
 		ID:        uuid.New(),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
 		Name:      cmd.args[0],
 	})
 	if err != nil {
@@ -120,8 +120,8 @@ func handlerCreateFeed(s *state, cmd command) error {
 	feed, err := s.db.CreateFeed(context.Background(),
 		database.CreateFeedParams{
 			ID:        uuid.New(),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
 			Name:      cmd.args[0],
 			Url:       cmd.args[1],
 			UserID:    user.ID,
@@ -130,7 +130,22 @@ func handlerCreateFeed(s *state, cmd command) error {
 		log.Fatalf("error adding feed: %v", err)
 	}
 
+	feedFollow, err := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID: uuid.New(),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+		UserID: user.ID,
+		FeedID: feed.ID,
+	})
+	if err != nil {
+		log.Fatalf("error creating feed follow: %v", err)
+	}
+
+	fmt.Println("feed was created successfully")
 	printFeed(feed, user)
+	fmt.Println()
+	fmt.Printf("now following feed you just created\n")
+	printFeedFollow(feedFollow.UserName, feedFollow.FeedName)
 	fmt.Println("======================================================")
 
 	return nil
@@ -159,6 +174,57 @@ func handlerGetFeeds(s *state, cmd command) error {
 	return nil
 }
 
+// handler for the follow command that creates a feed follow for the current user
+func handlerFollow(s *state, cmd command) error {
+	if len(cmd.args) != 1 {
+		return errors.New("no url found in follow command, please try again")
+	}
+
+	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+	if err != nil {
+		log.Fatalf("error retrieving user for follow command: %v", err)
+	}
+
+	feed, err := s.db.GetFeedByUrl(context.Background(), cmd.args[0])
+	if err != nil {
+		log.Fatalf("error retrieving feed for follow command: %v", err)
+	}
+
+	feedFollow, err := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID: uuid.New(),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+		UserID: user.ID,
+		FeedID: feed.ID,
+	})
+	if err != nil {
+		log.Fatalf("error creating feed follow: %v", err)
+	}
+
+	printFeedFollow(feedFollow.UserName, feedFollow.FeedName)
+
+	return nil
+}
+
+// handler for the following command that prints out all the feeds that the current user is following
+func handlerFollowing(s *state, cmd command) error {
+	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+	if err != nil {
+		log.Fatalf("error retrieving user for following command: %v", err)
+	}
+
+	feeds, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
+	if err != nil {
+		log.Fatalf("error getting feeds followed for current user: %v", err)
+	}
+	fmt.Printf("current feeds you are following:\n")
+	for _, feed := range feeds {
+		fmt.Printf("%s\n", feed.FeedName)
+	}
+
+	return nil
+}
+
 // helper function to print out all the feed info to help reduce repeated code
 func printFeed(feed database.Feed, user database.User) {
 	fmt.Printf("* ID:            %s\n", feed.ID)
@@ -167,4 +233,9 @@ func printFeed(feed database.Feed, user database.User) {
 	fmt.Printf("* Name:          %s\n", feed.Name)
 	fmt.Printf("* URL:           %s\n", feed.Url)
 	fmt.Printf("* User:          %s\n", user.Name)
+}
+
+func printFeedFollow(username, feedname string) {
+	fmt.Printf("* User:          %s\n", username)
+	fmt.Printf("* Feed:          %s\n", feedname)
 }
