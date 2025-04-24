@@ -106,3 +106,31 @@ func handlerFetchFeed(s *state, cmd command) error {
 
 	return nil
 }
+
+// handler for the addfeed command that creates a feed attached to the current user
+func handlerCreateFeed(s *state, cmd command) error {
+	if len(cmd.args) != 2 {
+		return errors.New("expected a name and url of the feed")
+	}
+	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+	if err != nil {
+		log.Fatalf("error getting user from database")
+	}
+
+	feed, err := s.db.CreateFeed(context.Background(),
+		database.CreateFeedParams{
+			ID: uuid.New(),
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			Name: cmd.args[0],
+			Url: cmd.args[1],
+			UserID: user.ID,
+	})
+	if err != nil {
+		log.Fatalf("error adding feed: %v", err)
+	}
+
+	fmt.Printf("feed: %+v\n", feed)
+
+	return nil
+}
