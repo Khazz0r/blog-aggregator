@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 	"log"
+	"time"
 
 	"github.com/Khazz0r/blog-aggregator/internal/database"
 	"github.com/Khazz0r/blog-aggregator/internal/rss"
@@ -44,10 +44,10 @@ func handlerUserRegister(s *state, cmd command) error {
 	}
 
 	dbUser, err := s.db.CreateUser(context.Background(), database.CreateUserParams{
-		ID: uuid.New(), 
-		CreatedAt: time.Now(), 
-		UpdatedAt: time.Now(), 
-		Name: cmd.args[0],
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name:      cmd.args[0],
 	})
 	if err != nil {
 		log.Fatalf("user already exists")
@@ -119,18 +119,52 @@ func handlerCreateFeed(s *state, cmd command) error {
 
 	feed, err := s.db.CreateFeed(context.Background(),
 		database.CreateFeedParams{
-			ID: uuid.New(),
+			ID:        uuid.New(),
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-			Name: cmd.args[0],
-			Url: cmd.args[1],
-			UserID: user.ID,
-	})
+			Name:      cmd.args[0],
+			Url:       cmd.args[1],
+			UserID:    user.ID,
+		})
 	if err != nil {
 		log.Fatalf("error adding feed: %v", err)
 	}
 
-	fmt.Printf("feed: %+v\n", feed)
+	printFeed(feed, user)
+	fmt.Println("======================================================")
 
 	return nil
+}
+
+// handler for the feeds command that prints out all the feeds and the users who created them
+func handlerGetFeeds(s *state, cmd command) error {
+	feeds, err := s.db.GetFeeds(context.Background())
+	if err != nil {
+		log.Fatalf("unable to retrieve all feeds from database")
+	}
+
+	if len(feeds) == 0 {
+		log.Fatalf("No feeds found")
+	}
+
+	for _, feed := range feeds {
+		user, err := s.db.GetUserById(context.Background(), feed.UserID)
+		if err != nil {
+			log.Fatalf("failed to retrieve user by ID")
+		}
+		printFeed(feed, user)
+		fmt.Println("======================================================")
+	}
+
+	return nil
+}
+
+// helper function to print out all the feed info to help reduce repeated code
+func printFeed(feed database.Feed, user database.User) {
+	fmt.Printf("* ID:            %s\n", feed.ID)
+	fmt.Printf("* Created:       %v\n", feed.CreatedAt)
+	fmt.Printf("* Updated:       %v\n", feed.UpdatedAt)
+	fmt.Printf("* Name:          %s\n", feed.Name)
+	fmt.Printf("* URL:           %s\n", feed.Url)
+	fmt.Printf("* User:          %s\n", user.Name)
 }
