@@ -4,7 +4,7 @@ Welcome to blog-aggregator! (Or *gator* for short). Below you'll find general re
 ## Requirements
 This CLI has a few requirements:
 1. Latest version of PostgreSQL (I created this on v16.8)
-2. Latest version of Go (I create this on v1.24.1)
+2. Latest version of Go (I created this on v1.24.1)
 
 ## How to install
 To get everything up and running, start by running these commands once you have the requirements above installed to ensure you can have the same toolset I have:
