@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/Khazz0r/blog-aggregator/internal/database"
-	"github.com/Khazz0r/blog-aggregator/internal/rss"
 	"github.com/google/uuid"
 )
 
@@ -84,14 +83,20 @@ func handlerGetUsers(s *state, cmd command, user database.User) error {
 
 // handler for the agg command that gets data from url provided and prints it all out
 func handlerFetchFeed(s *state, cmd command) error {
-	feed, err := rss.FetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
+	if len(cmd.args) != 1 {
+		return errors.New("no time duration found in agg command, please put in how much time should be between each request")
+	}
+	timeBetweenRequests, err := time.ParseDuration(cmd.args[0])
 	if err != nil {
-		log.Fatalf("error fetching feed")
+		log.Fatalf("error parsing time between requests arguement: %v", err)
 	}
 
-	fmt.Printf("Feed: %+v\n", feed)
+	fmt.Printf("Collecting feeds every %s\n", cmd.args[0])
 
-	return nil
+	ticker := time.NewTicker(timeBetweenRequests)
+	for ; ; <-ticker.C {
+		scrapeFeeds(s)
+	}
 }
 
 // handler for the addfeed command that creates a feed attached to the current user
