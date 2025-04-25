@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/Khazz0r/blog-aggregator/internal/database"
@@ -203,6 +204,7 @@ func handlerFollowingListFeeds(s *state, cmd command, user database.User) error 
 	return nil
 }
 
+// handler for the unfollow command removes a follow of a feed for the user
 func handlerUnfollow(s *state, cmd command, user database.User) error {
 	if len(cmd.args) != 1 {
 		return errors.New("expected url but didn't find one, please provide a url")
@@ -216,6 +218,37 @@ func handlerUnfollow(s *state, cmd command, user database.User) error {
 		log.Fatalf("error removing follow: %v", err)
 	}
 	
+	return nil
+}
+
+// handler for the browse command that gives a number of posts specified (defaults to 2)
+func handlerBrowse(s *state, cmd command, user database.User) error {
+	limit := 2
+	if len(cmd.args) == 1 {
+		if specifiedLimit, err := strconv.Atoi(cmd.args[0]); err == nil {
+			limit = specifiedLimit
+		} else {
+			return fmt.Errorf("invalid limit: %w", err)
+		}
+	}
+
+	posts, err := s.db.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit:  int32(limit),
+	})
+	if err != nil {
+		return fmt.Errorf("couldn't get posts for user: %w", err)
+	}
+
+	fmt.Printf("Found %d posts for user %s:\n", len(posts), user.Name)
+	for _, post := range posts {
+		fmt.Printf("%s from %s\n", post.PublishedAt.Time.Format("Mon Jan 2"), post.Title)
+		fmt.Printf("--- %s ---\n", post.Title)
+		fmt.Printf("    %v\n", post.Description)
+		fmt.Printf("Link: %s\n", post.Url)
+		fmt.Println("=====================================")
+	}
+
 	return nil
 }
 

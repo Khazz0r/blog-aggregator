@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"log"
 	"time"
+	"strings"
 
 	"github.com/Khazz0r/blog-aggregator/internal/database"
 	"github.com/Khazz0r/blog-aggregator/internal/rss"
+	"github.com/google/uuid"
 )
 
 // grab all items from the next feed to fetch, mark that feed, and print out all of the titles to the console
@@ -35,12 +36,36 @@ func scrapeFeeds(s *state) error {
 		log.Fatalf("error fetching items from feed: %v", err)
 	}
 
+
 	for _, item := range rssFeed.Channel.Item {
-		fmt.Printf("* title:          %s\n", item.Title)
-		fmt.Printf("* link:           %s\n", item.Link)
-		fmt.Printf("* description:    %s\n", item.Description)
-		fmt.Println("=======================================================================")
+		publishedAt := sql.NullTime{}
+		if t, err := time.Parse(time.RFC1123Z, item.PubDate); err == nil {
+			publishedAt = sql.NullTime{
+				Time: t,
+				Valid: true,
+			}
+		}
+
+		_, err = s.db.CreatePost(context.Background(), database.CreatePostParams{
+			ID: uuid.New(),
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+			Title: item.Title,
+			Url: item.Link,
+			Description: item.Description,
+			PublishedAt: publishedAt,
+			FeedID: feed.ID,
+		})
+		if err != nil {
+			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				continue
+			}
+			log.Printf("Couldn't create post: %v", err)
+			continue
+		}
 	}
+
+	log.Printf("Feed %s collected, %v posts found", feed.Name, len(rssFeed.Channel.Item))
 
 	return nil
 }
