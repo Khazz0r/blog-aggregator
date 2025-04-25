@@ -15,7 +15,7 @@ To get everything up and running, start by running these commands once you have 
 5. "exit" (should be out of the database now)
 5. "go install github.com/pressly/goose/v3/cmd/goose@latest"
 6. **From the sql/schema directory** "goose postgres postgres://postgres:password@localhost:5432/gator up" (password is whatever you made it)
-7. Final step is to run "go install" in the home directory so you can simply run "blog-aggregator" for the program name.
+7. Final step is to run "go install" in the root directory so you can simply run "blog-aggregator" for the program name.
 
 **OPTIONAL** "go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest" (if you want to create your own SQL queries and generate them to Go code)
 
