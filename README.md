@@ -20,10 +20,10 @@ To get everything up and running, start by running these commands once you have 
 **OPTIONAL** "go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest" (if you want to create your own SQL queries and generate them to Go code)
 
 ## Commands
-* "blog-aggregator register {username} will register a username of your choice to the database and create a JSON config file called ".gatorconfig.json" at the ~\ location.
-* "blog-aggregator login {username}" will update the config file and successfully log you in as long as the username is in the database.
-* "blog-aggregator addfeed {name of feed} {url of feed} is how you can add feeds to aggregate and browse, it automatically has you follow the feeds you add.
-* "blog-aggregator agg {time between requests} (time is optional) ex: "gator agg 1m30s" (this command runs indefinitely until you hit ctrl+C to stop it)
+* "blog-aggregator register {username}" (this will register a username of your choice to the database and create a JSON config file called ".gatorconfig.json" at the ~\ location.)
+* "blog-aggregator login {username}" (this will update the config file and successfully log you in as long as the username is in the database.)
+* "blog-aggregator addfeed {name of feed} {url of feed}" (this is how you can add feeds to aggregate and browse, it automatically has you follow the feeds you add.)
+* "blog-aggregator agg {time between requests}" (time is optional) ex: "gator agg 1m30s" (this command runs indefinitely until you hit ctrl+C to stop it)
 * "blog-aggregator browse {limit of posts}" (limit is option, defaults to two posts)
 * "blog-aggregator follow {url of feed}"
 * "blog-aggregator unfollow {url of feed}"
